@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcard Generator</title>
+  <link rel="stylesheet" href="styles/tailwind.css">
+  <link rel="icon" href="favicon.ico">
+  <style>
+    @import url('styles/fonts/fonts.css');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f6f9fc 0%, #edf2f7 100%);
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    .flashcard-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .flashcard-controls {
+      background-color: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      padding: 2rem;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 3rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .flashcard-controls:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .flashcard {
+      width: 340px;
+      height: 220px;
+      perspective: 1000px;
+      margin: 1rem;
+    }
+
+    .flashcard-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+
+    .flashcard-front, .flashcard-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      padding: 1.5rem;
+      background-color: white;
+      color: #2d3748;
+      font-size: 1.25rem;
+      font-weight: 500;
+      overflow-y: auto;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .flashcard-front::-webkit-scrollbar,
+    .flashcard-back::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    .flashcard-front::-webkit-scrollbar-track,
+    .flashcard-back::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 3px;
+    }
+
+    .flashcard-front::-webkit-scrollbar-thumb,
+    .flashcard-back::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    .flashcard-front::-webkit-scrollbar-thumb:hover,
+    .flashcard-back::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .flashcard-content {
+      min-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+    }
+
+    .flashcard:hover .flashcard-front,
+    .flashcard:hover .flashcard-back {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .flashcard-back {
+      background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+      transform: rotateY(180deg);
+    }
+
+    .flashcard.flipped .flashcard-inner {
+      transform: rotateY(180deg);
+    }
+
+    .input-file-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .input-file-wrapper input[type="file"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .file-upload-button {
+      display: block;
+      padding: 0.75rem 1rem;
+      background-color: #edf2f7;
+      color: #4a5568;
+      border: 2px dashed #cbd5e0;
+      border-radius: 0.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .input-file-wrapper:hover .file-upload-button {
+      border-color: #4299e1;
+      color: #2b6cb0;
+      background-color: #ebf8ff;
+    }
+
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      width: 100%;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 1.2rem;
+      height: 1.2rem;
+      border-radius: 0.25rem;
+      margin-right: 0.5rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+    }
+
+    .generate-button, .shuffle-button, .flip-all-button {
+      background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+      color: white;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      flex: 1;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .shuffle-button {
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    }
+
+    .flip-all-button {
+      background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+    }
+
+    .generate-button:hover, .shuffle-button:hover, .flip-all-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px -1px rgba(49, 130, 206, 0.3);
+    }
+
+    .generate-button:active, .shuffle-button:active, .flip-all-button:active {
+      transform: translateY(0);
+    }
+
+    .footer-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-button {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      color: #4a5568;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.375rem;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .footer-button:hover {
+      color: #2d3748;
+      background-color: #f7fafc;
+      border-color: #cbd5e0;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .footer-button svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    @keyframes cardAppear {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #flashcardContainer > .flashcard {
+      animation: cardAppear 0.5s ease forwards;
+    }
+  </style>
+</head>
+<body>
+  <div class="flashcard-container">
+    <h1 class="text-4xl font-bold mb-2 text-center">Flashcard Generator</h1>
+    <p class="text-gray-600 mb-8 text-center">Upload an Excel file to create interactive flashcards</p>
+    
+    <div class="flashcard-controls">
+      <div class="input-file-wrapper">
+        <input type="file" id="fileInput" accept=".xlsx">
+        <div class="file-upload-button">
+          <span>Choose Excel File</span>
+          <p class="text-sm text-gray-500 mt-1">or drag and drop here</p>
+        </div>
+      </div>
+      
+      <div class="checkbox-wrapper">
+        <label class="checkbox-label">
+          <input type="checkbox" id="skipHeader" class="accent-blue-500">
+          <span class="text-gray-700 select-none">Skip first row (header)</span>
+        </label>
+      </div>
+      
+      <div class="button-container">
+        <button onclick="generateFlashcards()" class="generate-button">
+          Generate
+        </button>
+        <button onclick="shuffleFlashcards()" class="shuffle-button">
+          Shuffle
+        </button>
+        <button onclick="flipAllFlashcards()" class="flip-all-button">
+          Flip All
+        </button>
+      </div>
+    </div>
+    
+    <div id="flashcardContainer" class="mt-8 flex flex-wrap justify-center gap-6"></div>
+
+    <div class="footer-buttons">
+      <a href="https://github.com/mathiasverbeke0/flashcard-generator" class="footer-button" target="_blank" rel="noopener noreferrer">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+        </svg>
+        About
+      </a>
+      <a href="mailto:mathias.verbeke@howest.be" class="footer-button">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+        Contact
+      </a>
+    </div>
+  </div>
+
+  <script src="javascript/xlsx.full.min.js"></script>
+  <script>
+    let currentFlashcards = [];
+    let areAllFlipped = false;
+
+    const fileInput = document.getElementById('fileInput');
+    const uploadButton = document.querySelector('.file-upload-button');
+
+    fileInput.addEventListener('change', function(e) {
+      const fileName = e.target.files[0]?.name;
+      if (fileName) {
+        uploadButton.innerHTML = `
+          <span class="text-blue-600">${fileName}</span>
+          <p class="text-sm text-gray-500 mt-1">Click to change file</p>
+        `;
+      }
+    });
+
+    function generateFlashcards() {
+      const fileInput = document.getElementById('fileInput');
+      const flashcardContainer = document.getElementById('flashcardContainer');
+      const skipHeader = document.getElementById('skipHeader').checked;
+
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          currentFlashcards = [];
+          flashcardContainer.innerHTML = '';
+          areAllFlipped = false; // Reset flip state only when generating new cards
+
+          for (let i = skipHeader ? 1 : 0; i < excelData.length; i++) {
+            const [question, answer] = excelData[i];
+            if (question && answer) {
+              currentFlashcards.push({ question, answer });
+            }
+          }
+
+          displayFlashcards(currentFlashcards);
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    }
+
+    function shuffleFlashcards() {
+      if (currentFlashcards.length === 0) return;
+      
+      for (let i = currentFlashcards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [currentFlashcards[i], currentFlashcards[j]] = [currentFlashcards[j], currentFlashcards[i]];
+      }
+
+      displayFlashcards(currentFlashcards);
+    }
+
+    function flipAllFlashcards() {
+      const flashcardElements = document.querySelectorAll('.flashcard');
+      areAllFlipped = !areAllFlipped;
+      
+      flashcardElements.forEach(flashcard => {
+        if (areAllFlipped) {
+          flashcard.classList.add('flipped');
+        } else {
+          flashcard.classList.remove('flipped');
+        }
+      });
+    }
+
+    function displayFlashcards(flashcards) {
+      const flashcardContainer = document.getElementById('flashcardContainer');
+      flashcardContainer.innerHTML = '';
+
+      flashcards.forEach((card, index) => {
+        const flashcard = createFlashcard(card.question, card.answer, index);
+        if (areAllFlipped) {
+          flashcard.classList.add('flipped');
+        }
+        flashcardContainer.appendChild(flashcard);
+      });
+    }
+
+    function createFlashcard(question, answer, index) {
+      const flashcard = document.createElement('div');
+      flashcard.classList.add('flashcard');
+      flashcard.style.animationDelay = `${index * 0.1}s`;
+
+      const flashcardInner = document.createElement('div');
+      flashcardInner.classList.add('flashcard-inner');
+
+      const flashcardFront = document.createElement('div');
+      flashcardFront.classList.add('flashcard-front');
+      
+      const frontContent = document.createElement('div');
+      frontContent.classList.add('flashcard-content');
+      frontContent.textContent = question;
+      flashcardFront.appendChild(frontContent);
+
+      const flashcardBack = document.createElement('div');
+      flashcardBack.classList.add('flashcard-back');
+      
+      const backContent = document.createElement('div');
+      backContent.classList.add('flashcard-content');
+      backContent.textContent = answer;
+      flashcardBack.appendChild(backContent);
+
+      flashcardInner.appendChild(flashcardFront);
+      flashcardInner.appendChild(flashcardBack);
+      flashcard.appendChild(flashcardInner);
+
+      flashcard.addEventListener('click', () => {
+        flashcard.classList.toggle('flipped');
+      });
+
+      return flashcard;
+    }
+  </script>
+</body>
+</html>
